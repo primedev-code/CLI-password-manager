@@ -1,80 +1,98 @@
 import getpass
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+MASTER_FILE = BASE_DIR / "masterpassword.txt"
+DATA_FILE = BASE_DIR / "passwords.txt"
+
+
+def init_files():
+    if not MASTER_FILE.exists():
+        with open(MASTER_FILE, "w", encoding="utf-8") as f:
+            f.write("admin")
+    if not DATA_FILE.exists():
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            pass
+
+
+init_files()
 
 print("\n" * 40)
-file = open(r'Q:\programming\passwordmanager\masterpassword.txt', 'r')
-master_password = file.read().strip()
-file.close()
-print("Добро пожаловать в терминальный менеджер паролей, введите Мастер-пароль: ")
-password = getpass.getpass()
+with open(MASTER_FILE, "r", encoding="utf-8") as file:
+    master_password = file.read().strip()
+
+print("Добро пожаловать в терминальный менеджер паролей!")
+password = getpass.getpass("Введите Мастер-пароль: ")
+
 if password == master_password:
     print("Доступ разрешен!")
     while True:
         print("\n" * 40)
-        print("1 - добавить пароль")
-        print("2 - посмотреть сохраненный пароль")
-        print("3 - изменить пароль от сайта/сервиса")
-        print("4 - очистить базу паролей")
-        print("5 - выйти")
-        choice = input("Выберете действие: ")
+        print("1 - Добавить пароль")
+        print("2 - Посмотреть сохраненный пароль")
+        print("3 - Изменить пароль от сайта/сервиса")
+        print("4 - Очистить базу паролей")
+        print("5 - Выйти")
+
+        choice = input("\nВыберите действие: ")
+
         if choice == "5":
             break
+
         elif choice == "1":
             service = input("Введите название сервиса/сайта: ")
-            password = input("Введите пароль от сервиса/сайта: ")
-            service_password = f'{service}: {password}\n'
-            file = open(r'Q:\programming\passwordmanager\passwords.txt', 'a')
-            file.write(service_password)
-            file.close()
-            input("Пароль успешно сохранен! Нажмите Enter чтобы вернуться в главное меню...")
+            pass_val = input("Введите пароль от сервиса/сайта: ")
+            with open(DATA_FILE, "a", encoding="utf-8") as file:
+                file.write(f"{service}: {pass_val}\n")
+            input("\nПароль успешно сохранен! Нажмите Enter...")
+
         elif choice == "2":
             search = input("Введите название сайта/сервиса: ").lower()
             found = False
-            file = open(r'Q:\programming\passwordmanager\passwords.txt', 'r')
-            for line in file:
-                line = line.strip()
-                parts = line.split(": ")
-                if parts[0].lower() == search:
-                    print(f'Пароль от {search}: {parts[1]}')
-                    found = True
-                    break
-            file.close()
-            if found == False:
-                    print("Ошибка: такого сайта нет в базе данных!")
-            a = input("Нажмите Enter чтобы продолжить...")
-        elif choice == "4":
-            answer = input("Вы уверены? Все пароли будут удалены навсегда! (да/нет)\n")
-            if answer.lower() == "да":
-                file = open(r'Q:\programming\passwordmanager\passwords.txt', 'w')
-                file.close()
-                print("Пароли успешно удалены!")
-                input("Нажмите Enter чтобы вернуться в главное меню...")
-            elif answer.lower() == "нет":
-                continue
+            with open(DATA_FILE, "r", encoding="utf-8") as file:
+                for line in file:
+                    if ": " in line:
+                        srv, pass_val = line.strip().split(": ", 1)
+                        if srv.lower() == search:
+                            print(f"\nПароль от {srv}: {pass_val}")
+                            found = True
+                            break
+            if not found:
+                print("\nОшибка: такого сайта нет в базе данных!")
+            input("\nНажмите Enter чтобы продолжить...")
+
         elif choice == "3":
             search = input("Пароль от какого сайта хотите изменить?\n").lower()
             new_pass = input("Какой новый пароль хотите установить?\n")
             found = False
-            passwords_and_services = []
-            file = open(r'Q:\programming\passwordmanager\passwords.txt', 'r')
-            for line in file:
-                line = line.strip()
-                parts = line.split(": ")
-                if search == parts[0]:
-                    service_password = f'{parts[0]}: {new_pass}\n'
-                    passwords_and_services.append(service_password)
-                    found = True
-                else:
-                    old_line = f'{parts[0]}: {parts[1]}\n'
-                    passwords_and_services.append(old_line)
-            file.close()
-            if found == True:
-                file = open(r'Q:\programming\passwordmanager\passwords.txt', 'w')
-                for char in passwords_and_services:
-                    file.write(char)
-                file.close()
-                print(f"Пароль успешно изменен для сервиса {search}!")
-                input("Нажмите Enter для возвращения в главное меню...")
+            updated_records = []
+
+            with open(DATA_FILE, "r", encoding="utf-8") as file:
+                for line in file:
+                    if ": " in line:
+                        srv, pass_val = line.strip().split(": ", 1)
+                        if srv.lower() == search:
+                            updated_records.append(f"{srv}: {new_pass}\n")
+                            found = True
+                        else:
+                            updated_records.append(line)
+
+            if found:
+                with open(DATA_FILE, "w", encoding="utf-8") as file:
+                    file.writelines(updated_records)
+                print(f"\nПароль успешно изменен для сервиса {search}!")
             else:
-                print("Ошибка,такого файла нет в базе!")
+                print("\nОшибка: сервис не найден!")
+            input("\nНажмите Enter для продолжения...")
+
+        elif choice == "4":
+            answer = input(
+                "Вы уверены? Все пароли будут удалены! (да/нет): "
+            )
+            if answer.lower() == "да":
+                with open(DATA_FILE, "w", encoding="utf-8") as file:
+                    pass
+                print("\nБаза паролей очищена!")
+                input("\nНажмите Enter для продолжения...")
 else:
-    print("Ошибка! Неверный пароль")
+    print("\nОшибка! Неверный мастер-пароль.")
